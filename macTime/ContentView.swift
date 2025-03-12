@@ -36,6 +36,23 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .padding()
+            
+            Button {
+                TimerWindowManager.shared.openWindow()
+            } label: {
+                HStack{
+                    Image(systemName: "timer.circle.fill")
+                    Text("Timer")
+                }
+                .font(.title2)
+                .padding()
+                .background(
+                    .regularMaterial
+                )
+                .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom)
         }
         .frame(width: 250)
     }
