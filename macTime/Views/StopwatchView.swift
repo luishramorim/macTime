@@ -60,18 +60,21 @@ struct StopwatchView: View {
                 // Timer Display
                 HStack(spacing: 0) {
                     Text("\(String(format: "%02d", minutes))")
+                        .font(.system(size: 64, weight: .bold, design: .monospaced))
                         .contentTransition(.numericText())
                         .animation(.smooth, value: minutes)
                     
                     Text(":")
                     
                     Text("\(String(format: "%02d", seconds))")
+                        .font(.system(size: 64, weight: .bold, design: .monospaced))
                         .contentTransition(.numericText())
                         .animation(.smooth, value: seconds)
                     
                     Text(".")
                     
                     Text("\(String(format: "%01d", tenths))")
+                        .font(.system(size: 64, weight: .bold, design: .monospaced))
                         .contentTransition(.numericText())
                         .animation(.smooth, value: tenths)
                 }
