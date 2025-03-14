@@ -13,6 +13,8 @@ struct StopwatchView: View {
     @State private var timeElapsed: TimeInterval = 0
     @State private var timer: Timer?
     
+    @State private var showLaps = false
+    
     @State private var isPinned = false
     
     @State private var minutes = 0
@@ -22,120 +24,158 @@ struct StopwatchView: View {
     @State private var laps: [LapRecord] = []
     
     var body: some View {
-        VStack(spacing: 16) {
-            VStack {
-                HStack {
-                    // Close Button
-                    Button(action: closeWindow) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
+        VStack {
+            VStack(spacing: 16) {
+                VStack {
+                    HStack {
+                        // Close Button
+                        Button(action: closeWindow) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .offset(x: -5, y: -10)
+                        
+                        Spacer()
+                        
+                        Text("Stopwatch")
+                            .font(.headline)
                             .foregroundColor(.secondary)
+                            .padding(.bottom, 2)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            isPinned.toggle()
+                            StopwatchWindowManager.shared.toggleOverlay()
+                        }) {
+                            Image(systemName: isPinned ? "pin.fill" : "pin.slash")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .offset(x: 2, y: -10)
+                    }
+                    .padding(.top, 5)
+                    
+                    // Timer Display
+                    HStack(spacing: 0) {
+                        Text("\(String(format: "%02d", minutes))")
+                            .font(.system(size: 64, weight: .bold, design: .monospaced))
+                            .contentTransition(.numericText())
+                            .animation(.smooth, value: minutes)
+                        
+                        Text(":")
+                        
+                        Text("\(String(format: "%02d", seconds))")
+                            .font(.system(size: 64, weight: .bold, design: .monospaced))
+                            .contentTransition(.numericText())
+                            .animation(.smooth, value: seconds)
+                        
+                        Text(".")
+                        
+                        Text("\(String(format: "%01d", tenths))")
+                            .font(.system(size: 64, weight: .bold, design: .monospaced))
+                            .contentTransition(.numericText())
+                            .animation(.smooth, value: tenths)
+                    }
+                    .font(.system(size: 42, weight: .bold, design: .monospaced))
+                }
+                
+                // Control Buttons
+                HStack(spacing: 16) {
+                    // Reset Button
+                    Button(action: resetTimer) {
+                        ZStack {
+                            Circle()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(Color.gray.opacity(0.2))
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(isRunning || timeElapsed > 0 ? .primary : .gray)
+                        }
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .offset(x: -5, y: -10)
+                    .disabled(!isRunning && timeElapsed == 0)
                     
-                    Spacer()
+                    // Start/Pause Button
+                    Button(action: {
+                        if isRunning {
+                            stopTimer()
+                        } else {
+                            startTimer()
+                        }
+                        isRunning.toggle()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(isRunning ? Color.red : Color.green)
+                            Image(systemName: isRunning ? "pause.fill" : "play.fill")
+                                .foregroundColor(.white)
+                                .font(.largeTitle)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
-                    Text("Stopwatch")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 2)
-                    
+                    // Lap Button
+                    Button(action: recordLap) {
+                        ZStack {
+                            Circle()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(Color.gray.opacity(0.2))
+                            Image(systemName: "flag")
+                                .font(.system(size: 18))
+                                .foregroundColor(isRunning ? .primary : .gray)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(!isRunning)
+                }
+                
+                HStack {
                     Spacer()
                     
                     Button(action: {
-                        isPinned.toggle()
-                        StopwatchWindowManager.shared.toggleOverlay()
+                        withAnimation {
+                            showLaps.toggle()
+                        }
                     }) {
-                        Image(systemName: isPinned ? "pin.fill" : "pin.slash")
+                        Image(systemName: showLaps ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
                             .font(.title3)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .offset(x: 2, y: -10)
-                    
+                    .offset(x: 2)
                 }
-                .padding(.top, 5)
-                
-                // Timer Display
-                HStack(spacing: 0) {
-                    Text("\(String(format: "%02d", minutes))")
-                        .font(.system(size: 64, weight: .bold, design: .monospaced))
-                        .contentTransition(.numericText())
-                        .animation(.smooth, value: minutes)
-                    
-                    Text(":")
-                    
-                    Text("\(String(format: "%02d", seconds))")
-                        .font(.system(size: 64, weight: .bold, design: .monospaced))
-                        .contentTransition(.numericText())
-                        .animation(.smooth, value: seconds)
-                    
-                    Text(".")
-                    
-                    Text("\(String(format: "%01d", tenths))")
-                        .font(.system(size: 64, weight: .bold, design: .monospaced))
-                        .contentTransition(.numericText())
-                        .animation(.smooth, value: tenths)
-                }
-                .font(.system(size: 42, weight: .bold, design: .monospaced))
             }
+            .padding()
+            .frame(width: 320)
+            .background(.ultraThinMaterial)
+            .cornerRadius(20)
             
-            // Control Buttons
-            HStack(spacing: 16) {
-                // Reset Button
-                Button(action: resetTimer) {
-                    ZStack {
-                        Circle()
-                            .frame(width: 50, height: 50)
-                            .foregroundColor(Color.gray.opacity(0.2))
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(isRunning || timeElapsed > 0 ? .primary : .gray)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                .disabled(!isRunning && timeElapsed == 0)
-                
-                // Start/Pause Button
-                Button(action: {
-                    if isRunning {
-                        stopTimer()
-                    } else {
-                        startTimer()
-                    }
-                    isRunning.toggle()
-                }) {
-                    ZStack {
-                        Circle()
-                            .frame(width: 60, height: 60)
-                            .foregroundColor(isRunning ? Color.red : Color.green)
-                        Image(systemName: isRunning ? "pause.fill" : "play.fill")
-                            .foregroundColor(.white)
-                            .font(.largeTitle)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                // Lap Button
-                Button(action: recordLap) {
-                    ZStack {
-                        Circle()
-                            .frame(width: 50, height: 50)
-                            .foregroundColor(Color.gray.opacity(0.2))
-                        Image(systemName: "flag")
-                            .font(.system(size: 18))
-                            .foregroundColor(isRunning ? .primary : .gray)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                .disabled(!isRunning)
+            // Animated Lap Times Display
+            if showLaps {
+                Rectangle()
+                    .foregroundStyle(.clear)
+                    .frame(width: 280, height: 150)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(20)
+                    .overlay(
+                        ScrollView {
+                            LazyVStack {
+                                ForEach(laps.reversed()) { lap in
+                                    LapRowView(lap: lap)
+                                    Divider()
+                                }
+                            }
+                            .padding(10)
+                            .padding(.horizontal, 10)
+                        }
+                    )
             }
         }
-        .padding()
-        .frame(width: 320)
-        .background(.ultraThinMaterial)
-        .cornerRadius(20)
     }
     
     /// Starts the stopwatch timer, updating every 0.1 seconds.
@@ -186,7 +226,6 @@ struct StopwatchView: View {
     }
 }
 
-/// Represents a lap record with an identifier, number, and formatted time.
 struct LapRecord: Identifiable {
     let id = UUID()
     let number: Int
@@ -194,7 +233,6 @@ struct LapRecord: Identifiable {
     let formattedTime: String
 }
 
-/// A view that displays a recorded lap.
 struct LapRowView: View {
     let lap: LapRecord
     
