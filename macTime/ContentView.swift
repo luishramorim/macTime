@@ -14,7 +14,7 @@ struct ContentView: View {
                 VStack(alignment: .leading){
                     Text("macTime")
                         .font(.system(size: 20, design: .rounded))
-                    Text("version 0.1")
+                    Text("version \(appVersion())")
                 }
                 .padding(.horizontal)
                 Spacer()
@@ -55,6 +55,14 @@ struct ContentView: View {
             .padding(.bottom)
         }
         .frame(width: 250)
+    }
+    
+    func appVersion() -> String {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            return version
+        } else {
+            return "Unknown"
+        }
     }
 }
 
